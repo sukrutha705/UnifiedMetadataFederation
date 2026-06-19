@@ -6,6 +6,7 @@ from .router import (
     metadata_router,
     federation_router,
     dashboard_router,
+    catalogs_router,
 )
 from .dependencies import engine
 from .models import Base
@@ -28,11 +29,12 @@ def health_check():
     return {"status": "ok"}
 
 # Include routers
+# Include routers
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(metadata_router, prefix="/metadata", tags=["metadata"])
 app.include_router(federation_router, prefix="/federation", tags=["federation"])
 app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
-
+app.include_router(catalogs_router, prefix="/catalogs", tags=["catalogs"])
 # ---------- Startup ----------
 @app.on_event("startup")
 def startup():
