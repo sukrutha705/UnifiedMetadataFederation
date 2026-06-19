@@ -63,9 +63,7 @@ def get_federation_cache(redis_client: redis.Redis, query: str):
     return None
 
 
-def set_federation_cache(redis_client, query, data):
-    redis_client.set(
-        federation_cache_key(query),
-        json.dumps(jsonable_encoder(data)),
-        ex=300
-    )
+def set_federation_cache(redis_client: redis.Redis, query: str, data):
+    # Ensure data is JSON‑serialisable via FastAPI encoder
+    serialisable = jsonable_encoder(data)
+    redis_client.set(federation_cache_key(query), json.dumps(serialisable), ex=300)  # 5 min TTL
