@@ -56,6 +56,10 @@ def get_stats(
 
         # Natural Search metric
         "natural_search_requests": natural_requests,
+
+        # Smart Client metric
+        "smart_client_enabled": True,
+        "abstraction_layer": "Smart Metadata Client"
     }
 
 
