@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ResponsiveContainer,
   PieChart,
@@ -20,6 +21,11 @@ import {
   RefreshCw,
   Sparkles,
   Zap,
+  Plus,
+  Search,
+  GitMerge,
+  Lock,
+  AlertCircle,
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -67,6 +73,57 @@ const Dashboard: React.FC = () => {
   const [health, setHealth] = useState<DetailedHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Quick Action Dialog State
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [catalogName, setCatalogName] = useState('spark');
+  const [objectName, setObjectName] = useState('');
+  const [objectType, setObjectType] = useState('table');
+  const [description, setDescription] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+
+  // Toast Notification State
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const userRole = localStorage.getItem('role') || 'Viewer';
+  const isWriteAllowed = userRole === 'Admin' || userRole === 'Engineer';
+
+  const handleOpenCreate = () => {
+    if (!isWriteAllowed) return;
+    setCatalogName('spark');
+    setObjectName('');
+    setObjectType('table');
+    setDescription('');
+    setOwnerName('');
+    setDialogOpen(true);
+  };
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        catalog_name: catalogName,
+        object_name: objectName,
+        object_type: objectType,
+        description: description || null,
+        owner_name: ownerName || null,
+      };
+      await api.post('/client/metadata', payload);
+      setDialogOpen(false);
+      setToast({ message: 'Metadata created successfully via Dashboard Quick Actions!', type: 'success' });
+      fetchDashboardData();
+    } catch (err: any) {
+      console.error(err);
+      setToast({ message: 'Failed to create metadata.', type: 'error' });
+    }
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const fetchDashboardData = async () => {
     try {
@@ -273,6 +330,84 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl border shadow-2xl transition-all ${
+          toast.type === 'success'
+            ? 'bg-green-500/10 border-green-500/30 text-green-400'
+            : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+          <span className="text-xs font-semibold">{toast.message}</span>
+        </div>
+      )}
+
+      {/* Dashboard Quick Actions */}
+      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-violet-400" />
+          Dashboard Quick Operations
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button
+            onClick={handleOpenCreate}
+            disabled={!isWriteAllowed}
+            className={`flex flex-col justify-between p-5 border rounded-2xl text-left transition-all ${
+              isWriteAllowed
+                ? 'bg-slate-905 border-slate-800 hover:border-violet-500/50 hover:bg-slate-900/80 cursor-pointer group'
+                : 'bg-slate-950 border-slate-900 text-slate-650 cursor-not-allowed'
+            }`}
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Create Metadata
+              </span>
+              {isWriteAllowed ? <Plus className="w-4 h-4 text-violet-400 group-hover:scale-110 transition-transform" /> : <Lock className="w-3.5 h-3.5 text-slate-650" />}
+            </div>
+            <span className="text-xs text-slate-500 mt-2">Register federated metadata catalog schema elements.</span>
+          </button>
+
+          <Link
+            to="/search"
+            className="flex flex-col justify-between p-5 border border-slate-800 bg-slate-900 hover:border-indigo-500/50 hover:bg-slate-900/80 rounded-2xl text-left transition-all group"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Search Metadata
+              </span>
+              <Search className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+            </div>
+            <span className="text-xs text-slate-500 mt-2">Query cross-catalog schemas using parallel search engines.</span>
+          </Link>
+
+          <Link
+            to="/consistency"
+            className="flex flex-col justify-between p-5 border border-slate-800 bg-slate-900 hover:border-blue-500/50 hover:bg-slate-900/80 rounded-2xl text-left transition-all group"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Check Consistency
+              </span>
+              <CheckCircle className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+            </div>
+            <span className="text-xs text-slate-500 mt-2">Audit schema value matching across catalog connections.</span>
+          </Link>
+
+          <Link
+            to="/reconciliation"
+            className="flex flex-col justify-between p-5 border border-slate-800 bg-slate-900 hover:border-cyan-500/50 hover:bg-slate-900/80 rounded-2xl text-left transition-all group"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Reconcile Metadata
+              </span>
+              <GitMerge className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+            </div>
+            <span className="text-xs text-slate-500 mt-2">Enforce the source-of-truth values across database catalogs.</span>
+          </Link>
+        </div>
+      </div>
+
       {/* Charts & System health status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* System Health Breakdown Bar Chart */}
@@ -458,6 +593,110 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Quick Create Dialog Overlay */}
+      {dialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2.5">
+              <Database className="w-5 h-5 text-violet-400" />
+              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+                Quick Register Metadata
+              </h3>
+            </div>
+
+            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4 text-left">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    Catalog Name
+                  </label>
+                  <select
+                    value={catalogName}
+                    onChange={(e) => setCatalogName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-3 text-slate-350 text-xs focus:outline-none focus:border-violet-500 transition-colors"
+                  >
+                    <option value="spark">Spark</option>
+                    <option value="postgres">PostgreSQL</option>
+                    <option value="opensearch">OpenSearch</option>
+                    <option value="public">Public</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    Object Name
+                  </label>
+                  <input
+                    type="text"
+                    value={objectName}
+                    onChange={(e) => setObjectName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-3 text-slate-200 placeholder-slate-655 text-xs focus:outline-none focus:border-violet-500 transition-colors"
+                    placeholder="e.g. logs_verify"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Object Type
+                </label>
+                <input
+                  type="text"
+                  value={objectType}
+                  onChange={(e) => setObjectType(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-3 text-slate-200 placeholder-slate-655 text-xs focus:outline-none focus:border-violet-500 transition-colors"
+                  placeholder="e.g. table, view, index"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Owner
+                </label>
+                <input
+                  type="text"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-3 text-slate-200 placeholder-slate-655 text-xs focus:outline-none focus:border-violet-500 transition-colors"
+                  placeholder="e.g. data-eng, admin"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-3 text-slate-200 placeholder-slate-655 text-xs focus:outline-none focus:border-violet-500 transition-colors resize-none"
+                  placeholder="Summarize the purpose of this metadata index..."
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setDialogOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-350 text-xs font-semibold tracking-wider uppercase rounded-xl transition-all border border-slate-700/50"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold tracking-wider uppercase rounded-xl transition-all shadow-md"
+                >
+                  REGISTER
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
