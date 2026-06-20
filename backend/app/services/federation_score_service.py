@@ -80,20 +80,17 @@ def calculate_federation_score(
     # -----------------------------
     # Weighted Final Score
     # -----------------------------
-    final_score = round(
+    final_score = int(round(
         (
             consistency_component * 0.40
             + cache_component * 0.25
             + catalog_component * 0.20
             + search_component * 0.15
-        ),
-        2,
-    )
+        )
+    ))
 
     # Classification
-    if final_score >= 95:
-        status = "Elite"
-    elif final_score >= 85:
+    if final_score >= 85:
         status = "Healthy"
     elif final_score >= 70:
         status = "Warning"

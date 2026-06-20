@@ -18,7 +18,7 @@ from ..services.federation_score_service import calculate_federation_score
 router = APIRouter()
 
 
-@router.get("/stats")
+@router.get("/stats", response_model=dict, summary="Get dashboard statistics", description="Retrieve general system stats, caching rates, consistency score, search adoption, and weighted federation intelligence score.")
 def get_stats(
     db: Session = Depends(get_db),
     redis_cli: redis.Redis = Depends(get_redis),
@@ -33,10 +33,35 @@ def get_stats(
     consistency = calculate_consistency_score(db)
     federation = calculate_federation_score(db,redis_cli,)
 
-    # Natural language search requests
-    natural_requests = (
+    # Dashboard Analytics aggregates from AuditLog
+    natural_search_requests = (
         db.query(AuditLog)
-        .filter(AuditLog.action == "NATURAL_SEARCH")
+        .filter(AuditLog.action.in_(["NATURAL_SEARCH", "CLIENT_NATURAL_SEARCH"]))
+        .count()
+    )
+    catalog_discovery_requests = (
+        db.query(AuditLog)
+        .filter(AuditLog.action.in_(["CATALOG_DISCOVERY", "CLIENT_DISCOVERY"]))
+        .count()
+    )
+    consistency_checks = (
+        db.query(AuditLog)
+        .filter(AuditLog.action.in_(["CONSISTENCY_CHECK", "CLIENT_CONSISTENCY_CHECK"]))
+        .count()
+    )
+    reconciliations = (
+        db.query(AuditLog)
+        .filter(AuditLog.action == "RECONCILE")
+        .count()
+    )
+    smart_client_requests = (
+        db.query(AuditLog)
+        .filter(AuditLog.action.in_([
+            "CLIENT_SEARCH",
+            "CLIENT_DISCOVERY",
+            "CLIENT_NATURAL_SEARCH",
+            "CLIENT_CONSISTENCY_CHECK"
+        ]))
         .count()
     )
 
@@ -57,8 +82,13 @@ def get_stats(
         "consistent_objects": consistency.consistent_objects,
         "inconsistent_objects": consistency.inconsistent_objects,
 
-        # Natural Search metric
-        "natural_search_requests": natural_requests,
+        # Advanced Dashboard Analytics
+        "natural_search_requests": natural_search_requests,
+        "catalog_discovery_requests": catalog_discovery_requests,
+        "consistency_checks": consistency_checks,
+        "reconciliations": reconciliations,
+        "smart_client_requests": smart_client_requests,
+
         # Federation Intelligence Score
        "federation_score": federation["federation_score"],
        "federation_status": federation["federation_status"],
@@ -75,7 +105,7 @@ def get_stats(
     }
 
 
-@router.get("/events")
+@router.get("/events", response_model=List[EventResponse], summary="Get recent events", description="Get a list of the 10 most recent metadata events from the timeline.")
 def recent_events(db: Session = Depends(get_db)) -> List[EventResponse]:
     events = (
         db.query(MetadataEvent)
@@ -87,7 +117,7 @@ def recent_events(db: Session = Depends(get_db)) -> List[EventResponse]:
     return [EventResponse.from_orm(e) for e in events]
 
 
-@router.get("/audits")
+@router.get("/audits", response_model=List[AuditLogResponse], summary="Get recent audits", description="Get a list of the 10 most recent system audit log records.")
 def recent_audits(db: Session = Depends(get_db)) -> List[AuditLogResponse]:
     audits = (
         db.query(AuditLog)

@@ -70,6 +70,9 @@ class CatalogSuggestion(BaseModel):
     object_name: str
     score: int
     reason: List[str]
+    ranking_reason: Optional[List[str]] = None
+    consistency_bonus: Optional[int] = None
+    catalog_bonus: Optional[int] = None
 
 # ---------- Generic ----------
 class AuditLogResponse(BaseModel):

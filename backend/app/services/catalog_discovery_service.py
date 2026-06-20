@@ -81,11 +81,13 @@ def suggest_catalogs(query: str, db: Session) -> List[CatalogSuggestion]:
         base_score, reasons = _match_score(obj_name, description, query)
 
         # Consistency bonus – reuse existing service (fast, single call per meta)
+        c_bonus = 0
         try:
             consistency = check_consistency(db, obj_name)
             if consistency.consistent:
                 base_score += 30
                 reasons.append("High consistency score")
+                c_bonus = 30
         except Exception:
             # If consistency check fails we simply ignore the bonus
             pass
@@ -101,6 +103,9 @@ def suggest_catalogs(query: str, db: Session) -> List[CatalogSuggestion]:
             object_name=obj_name,
             score=base_score,
             reason=reasons,
+            ranking_reason=reasons,
+            consistency_bonus=c_bonus,
+            catalog_bonus=bonus,
         )
         suggestions.append(suggestion)
 

@@ -38,7 +38,7 @@ def require_role(allowed_roles: list):
     return role_checker
 
 # ------------------- CREATE -------------------
-@router.post("/", response_model=MetadataResponse)
+@router.post("/", response_model=MetadataResponse, summary="Create metadata entry", description="Create a new federated metadata entry, synchronizing catalog-specific tables and rebuilding the cache.")
 def create_metadata(
     payload: MetadataCreate,
     db: Session = Depends(get_db),
@@ -48,7 +48,7 @@ def create_metadata(
     return svc_create_metadata(payload, db, redis_cli, user)
 
 # ------------------- LIST -------------------
-@router.get("/", response_model=list[MetadataResponse])
+@router.get("/", response_model=list[MetadataResponse], summary="List all metadata", description="Retrieve all unified metadata records.")
 def list_metadata(
     db: Session = Depends(get_db),
     user=Depends(require_role(["Admin", "Engineer", "Viewer"])),
@@ -56,7 +56,7 @@ def list_metadata(
     return db.query(Metadata).all()
 
 # ------------------- GET BY ID -------------------
-@router.get("/{metadata_id}", response_model=MetadataResponse)
+@router.get("/{metadata_id}", response_model=MetadataResponse, summary="Get metadata by ID", description="Retrieve a specific metadata record by its ID.")
 def get_metadata(
     metadata_id: int,
     db: Session = Depends(get_db),
@@ -68,7 +68,7 @@ def get_metadata(
     return meta
 
 # ------------------- UPDATE -------------------
-@router.put("/{metadata_id}", response_model=MetadataResponse)
+@router.put("/{metadata_id}", response_model=MetadataResponse, summary="Update metadata entry", description="Modify an existing metadata record, sync-updating catalog tables and updating the cache.")
 def update_metadata(
     metadata_id: int,
     payload: MetadataUpdate,
@@ -82,7 +82,7 @@ def update_metadata(
         raise HTTPException(status_code=404, detail="Metadata not found")
 
 # ------------------- DELETE -------------------
-@router.delete("/{metadata_id}")
+@router.delete("/{metadata_id}", response_model=dict, summary="Delete metadata entry", description="Delete a metadata record, cleanly removing catalog-specific entries, auditing the action, and invalidating the cache.")
 def delete_metadata(
     metadata_id: int,
     db: Session = Depends(get_db),
