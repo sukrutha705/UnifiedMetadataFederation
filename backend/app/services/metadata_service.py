@@ -6,7 +6,7 @@ from ..models import Metadata
 from ..schemas import MetadataCreate, MetadataUpdate, MetadataResponse
 from ..utils.audit import write_audit
 from ..events import log_event
-from ..cache import invalidate_cache, rebuild_cache
+from ..cache import invalidate_cache, rebuild_cache, flush_search_cache
 from ..utils.catalog_sync import sync_create, sync_update, sync_delete
 
 
@@ -46,6 +46,7 @@ def create_metadata(
     # Cache handling
     invalidate_cache(redis_cli, meta.catalog_name, meta.id)
     rebuild_cache(redis_cli, db, meta.catalog_name)
+    flush_search_cache(redis_cli)
 
     _audit_and_event(db, user, "CREATE", meta)
     return meta
@@ -71,6 +72,7 @@ def update_metadata(
     sync_update(db, meta)
     invalidate_cache(redis_cli, meta.catalog_name, meta.id)
     rebuild_cache(redis_cli, db, meta.catalog_name)
+    flush_search_cache(redis_cli)
 
     _audit_and_event(db, user, "UPDATE", meta)
     return meta
@@ -97,6 +99,7 @@ def delete_metadata(
 
     # Cache handling
     invalidate_cache(redis_cli, catalog_name, metadata_id)
+    flush_search_cache(redis_cli)
 
     _audit_and_event(db, user, "DELETE", meta)
     return {"message": "deleted successfully"}

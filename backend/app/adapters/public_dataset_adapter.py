@@ -76,12 +76,16 @@ class PublicDatasetAdapter:
             results = []
 
             for item in data.get("results", []):
-                results.append(
-                    {
-                        "catalog": "public",
-                        "object_name": item.get("id", ""),
-                    }
-                )
+                # Socrata API nests dataset info inside a 'resource' object
+                resource = item.get("resource", {})
+                name = resource.get("name", "") or item.get("name", "")
+                if name:
+                    results.append(
+                        {
+                            "catalog": "public",
+                            "object_name": name,
+                        }
+                    )
 
             print(f"[NYC] Found {len(results)} results")
 
@@ -113,12 +117,16 @@ class PublicDatasetAdapter:
             results = []
 
             for item in data.get("results", []):
-                results.append(
-                    {
-                        "catalog": "public",
-                        "object_name": item.get("id", ""),
-                    }
-                )
+                # Socrata API nests dataset info inside a 'resource' object
+                resource = item.get("resource", {})
+                name = resource.get("name", "") or item.get("name", "")
+                if name:
+                    results.append(
+                        {
+                            "catalog": "public",
+                            "object_name": name,
+                        }
+                    )
 
             print(f"[CHICAGO] Found {len(results)} results")
 
