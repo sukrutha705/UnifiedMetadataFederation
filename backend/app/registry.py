@@ -3,11 +3,11 @@ from typing import Dict
 from .adapters.spark_adapter import SparkAdapter
 from .adapters.postgres_adapter import PostgresAdapter
 from .adapters.opensearch_adapter import OpenSearchAdapter
+from .adapters.public_dataset_adapter import PublicDatasetAdapter
 
 
 class CatalogRegistry:
-    """
-    Holds catalog adapters; provides lookup by name.
+    """Holds catalog adapters; provides lookup by name.
     New adapters can be added here without touching client code.
     """
 
@@ -16,6 +16,7 @@ class CatalogRegistry:
             "spark": SparkAdapter(),
             "postgres": PostgresAdapter(),
             "opensearch": OpenSearchAdapter(),
+            "public": PublicDatasetAdapter(),
         }
 
     def get_catalog(self, name: str):

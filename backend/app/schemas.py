@@ -1,5 +1,6 @@
+# backend/app/schemas.py
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 # ---------- Auth ----------
@@ -39,6 +40,35 @@ class FederationResult(BaseModel):
 class FederationSearchResponse(BaseModel):
     query: str
     results: List[FederationResult]
+
+# ---------- Consistency ----------
+class MetadataConflict(BaseModel):
+    field: str
+    values: Dict[str, Any]   # catalog -> value
+
+class ConsistencyResponse(BaseModel):
+    object_name: str
+    consistent: bool
+    conflicts: List[MetadataConflict] = []
+
+class ReconciliationResponse(BaseModel):
+    object_name: str
+    source_of_truth: str
+    updated_catalogs: List[str]
+    status: str = "success"
+
+class ConsistencyMetricsResponse(BaseModel):
+    total_objects: int
+    consistent_objects: int
+    inconsistent_objects: int
+    consistency_score: float
+
+# ---------- Catalog Discovery ----------
+class CatalogSuggestion(BaseModel):
+    catalog: str
+    object_name: str
+    score: int
+    reason: List[str]
 
 # ---------- Generic ----------
 class AuditLogResponse(BaseModel):

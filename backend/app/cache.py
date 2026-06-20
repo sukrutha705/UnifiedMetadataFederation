@@ -59,13 +59,28 @@ def federation_cache_key(query: str) -> str:
 def get_federation_cache(redis_client: redis.Redis, query: str):
     raw = redis_client.get(federation_cache_key(query))
     if raw:
+        redis_client.incr("cache:hit")
         return json.loads(raw)
+    redis_client.incr("cache:miss")
     return None
 
 
-def set_federation_cache(redis_client, query, data):
-    redis_client.set(
-        federation_cache_key(query),
-        json.dumps(jsonable_encoder(data)),
-        ex=300
-    )
+def set_federation_cache(redis_client: redis.Redis, query: str, data):
+    # Ensure data is JSON‑serialisable via FastAPI encoder
+    serialisable = jsonable_encoder(data)
+    redis_client.set(federation_cache_key(query), json.dumps(serialisable), ex=300)  # 5 min TTL
+
+
+def flush_search_cache(redis_client: redis.Redis):
+    """Invalidate all federation search cache keys.
+
+    Called after any metadata mutation (create/update/delete) to prevent
+    stale search results from being served.
+    """
+    cursor = 0
+    while True:
+        cursor, keys = redis_client.scan(cursor=cursor, match="search:*", count=100)
+        if keys:
+            redis_client.delete(*keys)
+        if cursor == 0:
+            break

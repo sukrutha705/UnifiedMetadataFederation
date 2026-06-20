@@ -6,11 +6,14 @@ from .router import (
     metadata_router,
     federation_router,
     dashboard_router,
+    catalogs_router,
+    natural_search_router,
 )
 from .dependencies import engine
 from .models import Base
 from .models import SparkMetadata, PostgresMetadata, OpenSearchMetadata, Metadata
 from sqlalchemy.orm import Session
+
 
 app = FastAPI(title="Unified Metadata Federation Platform", version="0.1.0")
 
@@ -28,11 +31,13 @@ def health_check():
     return {"status": "ok"}
 
 # Include routers
+# Include routers
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(metadata_router, prefix="/metadata", tags=["metadata"])
 app.include_router(federation_router, prefix="/federation", tags=["federation"])
 app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
-
+app.include_router(catalogs_router, prefix="/catalogs", tags=["catalogs"])
+app.include_router(natural_search_router,prefix="/search",tags=["search"])
 # ---------- Startup ----------
 @app.on_event("startup")
 def startup():
