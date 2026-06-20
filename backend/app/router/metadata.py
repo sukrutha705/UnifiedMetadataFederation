@@ -6,11 +6,14 @@ from jose import JWTError, jwt
 
 from ..dependencies import get_db, get_redis
 from ..models import Metadata
-from ..registry import registry
-from ..cache import cache_store, invalidate_cache, rebuild_cache
-from ..events import log_event
-from ..utils.audit import write_audit
 from ..schemas import MetadataCreate, MetadataUpdate, MetadataResponse
+
+# Shared CRUD service (handles catalog sync, cache, audit, events)
+from ..services.metadata_service import (
+    create_metadata as svc_create_metadata,
+    update_metadata as svc_update_metadata,
+    delete_metadata as svc_delete_metadata,
+)
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -42,26 +45,7 @@ def create_metadata(
     redis_cli: redis.Redis = Depends(get_redis),
     user=Depends(require_role(["Admin", "Engineer"])),
 ):
-    meta = Metadata(**payload.dict())
-    db.add(meta)
-    db.commit()
-    db.refresh(meta)
-
-    # Cache handling – invalidate and rebuild for this catalog
-    invalidate_cache(redis_cli, meta.catalog_name, meta.id)
-    rebuild_cache(redis_cli, db, meta.catalog_name)
-
-    # Audit + timeline
-    write_audit(
-        db,
-        username=user["username"],
-        role=user["role"],
-        action="CREATE",
-        catalog_name=meta.catalog_name,
-        metadata_id=meta.id,
-    )
-    log_event(db, meta.id, "CREATED")
-    return meta
+    return svc_create_metadata(payload, db, redis_cli, user)
 
 # ------------------- LIST -------------------
 @router.get("/", response_model=list[MetadataResponse])
@@ -92,27 +76,10 @@ def update_metadata(
     redis_cli: redis.Redis = Depends(get_redis),
     user=Depends(require_role(["Admin", "Engineer"])),
 ):
-    meta = db.query(Metadata).filter(Metadata.id == metadata_id).first()
-    if not meta:
+    try:
+        return svc_update_metadata(metadata_id, payload, db, redis_cli, user)
+    except ValueError:
         raise HTTPException(status_code=404, detail="Metadata not found")
-    for field, value in payload.dict(exclude_unset=True).items():
-        setattr(meta, field, value)
-    db.commit()
-    db.refresh(meta)
-
-    invalidate_cache(redis_cli, meta.catalog_name, meta.id)
-    rebuild_cache(redis_cli, db, meta.catalog_name)
-
-    write_audit(
-        db,
-        username=user["username"],
-        role=user["role"],
-        action="UPDATE",
-        catalog_name=meta.catalog_name,
-        metadata_id=meta.id,
-    )
-    log_event(db, meta.id, "UPDATED")
-    return meta
 
 # ------------------- DELETE -------------------
 @router.delete("/{metadata_id}")
@@ -122,32 +89,7 @@ def delete_metadata(
     redis_cli: redis.Redis = Depends(get_redis),
     user=Depends(require_role(["Admin"])),
 ):
-    meta = db.query(Metadata).filter(Metadata.id == metadata_id).first()
-    if not meta:
-        raise HTTPException(status_code=404, detail="Metadata not found")
-
-    # Delete core record
-    db.delete(meta)
-    db.commit()
-
-    # Delete from catalog‑specific table (raw SQL, based on catalog name)
-    table_name = (
-        "spark_metadata" if meta.catalog_name == "spark" else
-        "postgres_metadata" if meta.catalog_name == "postgres" else
-        "opensearch_metadata"
-    )
-    db.execute(f"DELETE FROM {table_name} WHERE id = :mid", {"mid": meta.id})
-    db.commit()
-
-    invalidate_cache(redis_cli, meta.catalog_name, meta.id)
-
-    write_audit(
-        db,
-        username=user["username"],
-        role=user["role"],
-        action="DELETE",
-        catalog_name=meta.catalog_name,
-        metadata_id=meta.id,
-    )
-    log_event(db, meta.id, "DELETED")
-    return {"msg": "metadata deleted"}
+    try:
+        return svc_delete_metadata(metadata_id, db, redis_cli, user)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Metadata not found")
