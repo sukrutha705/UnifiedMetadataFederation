@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Plus,
   Edit2,
@@ -26,6 +27,8 @@ interface MetadataProps {
 }
 
 const Metadata: React.FC<MetadataProps> = ({ userRole }) => {
+  const location = useLocation();
+  const highlightId = location.state?.highlightId || null;
   const [metadataList, setMetadataList] = useState<MetadataResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,7 +215,7 @@ const Metadata: React.FC<MetadataProps> = ({ userRole }) => {
                   </tr>
                 ) : (
                   filteredMetadata.map((meta) => (
-                    <tr key={meta.id} className="hover:bg-slate-900/30 transition-colors">
+                    <tr key={meta.id} className={`hover:bg-slate-900/30 transition-colors ${meta.id === highlightId ? 'bg-violet-600/15 border-l-2 border-l-violet-500 shadow-[inset_4px_0_0_rgba(139,92,246,0.3)]' : ''}`}>
                       <td className="px-6 py-4 text-xs font-mono text-slate-500">#{meta.id}</td>
                       <td className="px-6 py-4">
                         <span className="text-[10px] font-black uppercase text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">

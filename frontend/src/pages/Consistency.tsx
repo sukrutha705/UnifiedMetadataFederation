@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AlertTriangle, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 
@@ -14,11 +15,36 @@ interface ConsistencyResponse {
 }
 
 const Consistency: React.FC = () => {
-  const [objectName, setObjectName] = useState('customer');
+  const location = useLocation();
+  const initialObjectName = location.state?.objectName || 'customer';
+  const [objectName, setObjectName] = useState(initialObjectName);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [result, setResult] = useState<ConsistencyResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.state?.objectName) {
+      const autoCheck = async () => {
+        setLoading(true);
+        setError(null);
+        setSearched(true);
+        try {
+          const response = await api.get(`/client/consistency/${encodeURIComponent(location.state.objectName)}`);
+          setResult(response.data);
+        } catch (err: any) {
+          if (err.response && err.response.status === 404) {
+            setError(`Object "${location.state.objectName}" was not found in any metadata catalog registry.`);
+          } else {
+            setError('An error occurred while checking metadata consistency.');
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+      autoCheck();
+    }
+  }, [location.state?.objectName]);
 
   const checkConsistency = async (e: React.FormEvent) => {
     e.preventDefault();
