@@ -203,6 +203,12 @@ const Dashboard: React.FC = () => {
     },
   ];
 
+  // Circular gauge configurations
+  const radius = 35;
+  const strokeWidth = 5;
+  const circumference = 2 * Math.PI * radius; // ~219.91
+  const strokeDashoffset = circumference - (circumference * stats.federation_score) / 100;
+
   // Helper to render health dot
   const renderHealthIndicator = (status: string) => {
     if (status === 'healthy' || status === 'ok' || status === 'enabled') {
@@ -253,6 +259,160 @@ const Dashboard: React.FC = () => {
         >
           <RefreshCw className="w-3.5 h-3.5" /> REFRESH
         </button>
+      </div>
+
+      {/* Premium Hero Card */}
+      <div className="bg-slate-900/30 backdrop-blur border border-slate-800 rounded-2xl overflow-hidden shadow-2xl relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-800">
+          
+          {/* Left Section */}
+          <div className="p-6 space-y-4 flex flex-col justify-between">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded border border-violet-500/25 w-max block">
+                Enterprise Metadata Intelligence
+              </span>
+              <h3 className="text-xl font-bold text-slate-100 tracking-wide mt-2">
+                Unified Metadata Federation Platform
+              </h3>
+              <p className="text-xs text-slate-450 leading-relaxed">
+                Federated Metadata Intelligence Layer
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-800/45">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-550 uppercase">Connected Catalogs</span>
+                <span className="text-xl font-black text-slate-300 mt-0.5">{stats.connected_catalogs}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-550 uppercase">Metadata Objects</span>
+                <span className="text-xl font-black text-slate-300 mt-0.5">{stats.metadata_count}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Center Section */}
+          <div className="p-6 flex flex-col items-center justify-center space-y-3">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Federation Intelligence
+            </span>
+            
+            <div className="relative flex items-center justify-center w-24 h-24">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="48"
+                  cy="48"
+                  r={radius}
+                  stroke="#1e293b"
+                  strokeWidth={strokeWidth}
+                  fill="transparent"
+                />
+                <circle
+                  cx="48"
+                  cy="48"
+                  r={radius}
+                  stroke="url(#score-gradient)"
+                  strokeWidth={strokeWidth}
+                  fill="transparent"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000 ease-out"
+                />
+                <defs>
+                  <linearGradient id="score-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#c084fc" />
+                    <stop offset="100%" stopColor="#6366f1" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-xl font-black text-slate-100">{stats.federation_score}</span>
+                <span className="text-[9px] font-bold text-slate-450 uppercase tracking-widest">{stats.federation_status}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Section */}
+          <div className="p-6 flex flex-col justify-between space-y-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
+                Platform Status
+              </span>
+              {health ? (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div className="flex items-center justify-between text-xs border-b border-slate-800/40 pb-1">
+                    <span className="text-slate-450">API</span>
+                    {renderHealthIndicator(health.api)}
+                  </div>
+                  <div className="flex items-center justify-between text-xs border-b border-slate-800/40 pb-1">
+                    <span className="text-slate-450">Database</span>
+                    {renderHealthIndicator(health.database)}
+                  </div>
+                  <div className="flex items-center justify-between text-xs border-b border-slate-800/40 pb-1">
+                    <span className="text-slate-455">Redis</span>
+                    {renderHealthIndicator(health.redis)}
+                  </div>
+                  <div className="flex items-center justify-between text-xs border-b border-slate-800/40 pb-1">
+                    <span className="text-slate-455">Smart Client</span>
+                    {renderHealthIndicator(health.smart_client)}
+                  </div>
+                  <div className="flex items-center justify-between text-xs border-b border-slate-800/40 pb-1 col-span-2">
+                    <span className="text-slate-455">Federation Layer</span>
+                    {renderHealthIndicator(health.federation_layer)}
+                  </div>
+                </div>
+              ) : (
+                <span className="text-xs text-slate-650 italic">Querying detailed health...</span>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-slate-800/45 flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-450">{stats.abstraction_layer}</span>
+                <span className="text-[9px] text-slate-500 uppercase tracking-widest mt-0.5">
+                  {stats.smart_client_enabled ? 'Abstraction Layer Enabled' : 'Abstraction Layer Disabled'}
+                </span>
+              </div>
+              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Bottom row: Live Metrics Strip */}
+        <div className="border-t border-slate-800/50 bg-slate-950/40 px-6 py-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="flex flex-col">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+              Consistency Score
+            </span>
+            <span className="text-sm font-extrabold text-slate-200 mt-1">{stats.consistency_score}%</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+              Cache Hit Rate
+            </span>
+            <span className="text-sm font-extrabold text-slate-200 mt-1">{stats.cache_hit_rate}%</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+              Natural Searches
+            </span>
+            <span className="text-sm font-extrabold text-slate-200 mt-1">{stats.natural_search_requests}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+              Discovery Requests
+            </span>
+            <span className="text-sm font-extrabold text-slate-200 mt-1">{stats.catalog_discovery_requests}</span>
+          </div>
+          <div className="flex flex-col col-span-2 md:col-span-1">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+              Reconciliations
+            </span>
+            <span className="text-sm font-extrabold text-slate-200 mt-1">{stats.reconciliations + stats.client_reconciliations}</span>
+          </div>
+        </div>
       </div>
 
       {/* Hero / Hero KPI Grid */}
