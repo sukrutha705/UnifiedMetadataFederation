@@ -59,6 +59,26 @@ def get_stats(
         .filter(AuditLog.action == "CLIENT_RECONCILIATION")
         .count()
     )
+    client_creates = (
+        db.query(AuditLog)
+        .filter(AuditLog.action == "CLIENT_CREATE")
+        .count()
+    )
+    client_reads = (
+        db.query(AuditLog)
+        .filter(AuditLog.action.in_(["CLIENT_READ", "CLIENT_LIST"]))
+        .count()
+    )
+    client_updates = (
+        db.query(AuditLog)
+        .filter(AuditLog.action == "CLIENT_UPDATE")
+        .count()
+    )
+    client_deletes = (
+        db.query(AuditLog)
+        .filter(AuditLog.action == "CLIENT_DELETE")
+        .count()
+    )
     smart_client_requests = (
         db.query(AuditLog)
         .filter(AuditLog.action.in_([
@@ -66,7 +86,12 @@ def get_stats(
             "CLIENT_DISCOVERY",
             "CLIENT_NATURAL_SEARCH",
             "CLIENT_CONSISTENCY_CHECK",
-            "CLIENT_RECONCILIATION"
+            "CLIENT_RECONCILIATION",
+            "CLIENT_CREATE",
+            "CLIENT_LIST",
+            "CLIENT_READ",
+            "CLIENT_UPDATE",
+            "CLIENT_DELETE"
         ]))
         .count()
     )
@@ -94,6 +119,10 @@ def get_stats(
         "consistency_checks": consistency_checks,
         "reconciliations": reconciliations,
         "client_reconciliations": client_reconciliations,
+        "client_creates": client_creates,
+        "client_reads": client_reads,
+        "client_updates": client_updates,
+        "client_deletes": client_deletes,
         "smart_client_requests": smart_client_requests,
 
         # Federation Intelligence Score
