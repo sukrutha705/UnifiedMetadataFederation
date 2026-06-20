@@ -92,4 +92,4 @@ def delete_metadata(
     try:
         return svc_delete_metadata(metadata_id, db, redis_cli, user)
     except ValueError:
-        raise HTTPException(status_code=404, detail="Metadata not found")
+        raise HTTPException(status_code=404, detail="Metadata not found")

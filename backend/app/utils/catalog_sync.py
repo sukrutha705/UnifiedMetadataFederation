@@ -88,23 +88,22 @@ def sync_update(db: Session, meta: Metadata):
 
 
 def sync_delete(db: Session, meta: Metadata):
-
+    """Delete catalog‑specific entry using object_name rather than internal id.
+    The core Metadata row is deleted separately by the caller.
+    """
     if meta.catalog_name == "spark":
         db.execute(
-            text("DELETE FROM spark_metadata WHERE id = :mid"),
-            {"mid": meta.id},
+            text("DELETE FROM spark_metadata WHERE table_name = :obj"),
+            {"obj": meta.object_name},
         )
-
     elif meta.catalog_name == "postgres":
         db.execute(
-            text("DELETE FROM postgres_metadata WHERE id = :mid"),
-            {"mid": meta.id},
+            text("DELETE FROM postgres_metadata WHERE table_name = :obj"),
+            {"obj": meta.object_name},
         )
-
     elif meta.catalog_name == "opensearch":
         db.execute(
-            text("DELETE FROM opensearch_metadata WHERE id = :mid"),
-            {"mid": meta.id},
+            text("DELETE FROM opensearch_metadata WHERE index_name = :obj"),
+            {"obj": meta.object_name},
         )
-
     db.commit()

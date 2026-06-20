@@ -88,18 +88,21 @@ def delete_metadata(
     if not meta:
         raise ValueError("Metadata not found")
 
-    # Store catalog name before deletion for sync/delete steps
+    # Store catalog name before deletion for cache invalidation
     catalog_name = meta.catalog_name
+
+    # Synchronize catalog‑specific tables (remove entry) using active meta
+    sync_delete(db, meta)
+
+    # Write audit log and timeline event before deleting the record
+    _audit_and_event(db, user, "DELETE", meta)
+
     # Remove core record
     db.delete(meta)
     db.commit()
-
-    # Synchronize catalog‑specific tables (remove entry)
-    sync_delete(db, meta)
 
     # Cache handling
     invalidate_cache(redis_cli, catalog_name, metadata_id)
     flush_search_cache(redis_cli)
 
-    _audit_and_event(db, user, "DELETE", meta)
     return {"message": "deleted successfully"}

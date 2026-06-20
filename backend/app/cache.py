@@ -84,3 +84,7 @@ def flush_search_cache(redis_client: redis.Redis):
             redis_client.delete(*keys)
         if cursor == 0:
             break
+
+
+# Alias for compatibility
+invalidate_federation_cache = flush_search_cache

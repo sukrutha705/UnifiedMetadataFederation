@@ -31,6 +31,7 @@ class MetadataResponse(MetadataBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 # ---------- Federation ----------
 class FederationResult(BaseModel):
@@ -82,6 +83,7 @@ class AuditLogResponse(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 class EventResponse(BaseModel):
     event_id: int
@@ -91,3 +93,4 @@ class EventResponse(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
