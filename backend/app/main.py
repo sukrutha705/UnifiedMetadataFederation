@@ -8,6 +8,7 @@ from .router import (
     dashboard_router,
     catalogs_router,
     natural_search_router,
+    unified_client_router,
 )
 from .dependencies import engine
 from .models import Base
@@ -38,6 +39,11 @@ app.include_router(federation_router, prefix="/federation", tags=["federation"])
 app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
 app.include_router(catalogs_router, prefix="/catalogs", tags=["catalogs"])
 app.include_router(natural_search_router,prefix="/search",tags=["search"])
+app.include_router(
+    unified_client_router,
+    prefix="/client",
+    tags=["smart-client"]
+)
 # ---------- Startup ----------
 @app.on_event("startup")
 def startup():

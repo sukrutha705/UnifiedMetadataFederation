@@ -68,6 +68,10 @@ def get_stats(
        "cache_component": federation["cache_component"],
        "catalog_component": federation["catalog_component"],
        "search_component": federation["search_component"],
+
+        # Smart Client abstraction metrics
+        "smart_client_enabled": True,
+        "abstraction_layer": "Smart Metadata Client",
     }
 
 

@@ -4,6 +4,7 @@ from .federation import router as federation_router
 from .dashboard import router as dashboard_router
 from .catalogs import router as catalogs_router
 from .natural_search import router as natural_search_router
+from .unified_client import router as unified_client_router
 
 __all__ = [
     "auth_router",
@@ -12,4 +13,5 @@ __all__ = [
     "catalogs_router",
     "dashboard_router",
     "natural_search_router",
+    "unified_client_router",
 ]
