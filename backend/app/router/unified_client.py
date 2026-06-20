@@ -11,9 +11,10 @@ from ..schemas import (
     FederationSearchResponse,
     CatalogSuggestion,
     ConsistencyResponse,
+    ReconciliationResponse,
 )
 from ..services.smart_metadata_client import SmartMetadataClient
-from .federation import require_read_role
+from .federation import require_read_role, require_role
 
 router = APIRouter()
 
@@ -87,5 +88,27 @@ def client_consistency(
         username=user["username"],
         role=user["role"],
         action="CLIENT_CONSISTENCY_CHECK",
+    )
+    return res
+
+
+@router.post("/reconcile/{object_name}", response_model=ReconciliationResponse, summary="Reconcile metadata object", description="Reconcile metadata for the given object using the consistency service, with audit logging.")
+def client_reconcile(
+    object_name: str,
+    db: Session = Depends(get_db),
+    redis_cli: redis.Redis = Depends(get_redis),
+    user=Depends(require_role(["Admin", "Engineer"])),
+):
+    """Unified endpoint to reconcile a metadata object across catalogs, with audit logging."""
+    try:
+        res = SmartMetadataClient.reconcile_object(object_name, db, redis_cli=redis_cli, user=user)
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+        
+    write_audit(
+        db,
+        username=user["username"],
+        role=user["role"],
+        action="CLIENT_RECONCILIATION",
     )
     return res

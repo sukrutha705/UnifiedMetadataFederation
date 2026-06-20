@@ -4,10 +4,13 @@ from sqlalchemy.orm import Session
 from ..registry import registry
 from ..cache import get_federation_cache, set_federation_cache
 from ..utils.audit import write_audit
-from ..schemas import FederationSearchResponse, FederationResult, CatalogSuggestion, ConsistencyResponse
+from ..schemas import FederationSearchResponse, FederationResult, CatalogSuggestion, ConsistencyResponse, ReconciliationResponse
 from .catalog_discovery_service import suggest_catalogs
 from .natural_language_search_service import natural_search as svc_natural_search
-from .consistency_service import check_consistency as svc_check_consistency
+from .consistency_service import (
+    check_consistency as svc_check_consistency,
+    reconcile_object as svc_reconcile_object,
+)
 
 
 class SmartMetadataClient:
@@ -65,3 +68,8 @@ class SmartMetadataClient:
     def check_consistency(object_name: str, db: Session) -> ConsistencyResponse:
         """Check metadata consistency for the given object across catalogs using the consistency service."""
         return svc_check_consistency(db, object_name)
+
+    @staticmethod
+    def reconcile_object(object_name: str, db: Session, redis_cli=None, user=None) -> ReconciliationResponse:
+        """Reconcile metadata for the given object using the consistency service."""
+        return svc_reconcile_object(object_name, db, redis_cli, user)

@@ -54,13 +54,19 @@ def get_stats(
         .filter(AuditLog.action == "RECONCILE")
         .count()
     )
+    client_reconciliations = (
+        db.query(AuditLog)
+        .filter(AuditLog.action == "CLIENT_RECONCILIATION")
+        .count()
+    )
     smart_client_requests = (
         db.query(AuditLog)
         .filter(AuditLog.action.in_([
             "CLIENT_SEARCH",
             "CLIENT_DISCOVERY",
             "CLIENT_NATURAL_SEARCH",
-            "CLIENT_CONSISTENCY_CHECK"
+            "CLIENT_CONSISTENCY_CHECK",
+            "CLIENT_RECONCILIATION"
         ]))
         .count()
     )
@@ -87,6 +93,7 @@ def get_stats(
         "catalog_discovery_requests": catalog_discovery_requests,
         "consistency_checks": consistency_checks,
         "reconciliations": reconciliations,
+        "client_reconciliations": client_reconciliations,
         "smart_client_requests": smart_client_requests,
 
         # Federation Intelligence Score
