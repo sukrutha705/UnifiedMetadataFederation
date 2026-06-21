@@ -26,6 +26,17 @@ import {
   GitMerge,
   Lock,
   AlertCircle,
+  ArrowDown,
+  Cpu,
+  Server,
+  Clock,
+  PlusCircle,
+  Edit,
+  Trash,
+  CheckSquare,
+  Layers,
+  Shield,
+  ArrowRight,
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -68,9 +79,17 @@ interface DetailedHealth {
   federation_layer: string;
 }
 
+interface EventResponse {
+  event_id: number;
+  metadata_id: number;
+  event_type: string;
+  timestamp: string;
+}
+
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [health, setHealth] = useState<DetailedHealth | null>(null);
+  const [events, setEvents] = useState<EventResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,6 +103,9 @@ const Dashboard: React.FC = () => {
 
   // Toast Notification State
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Trace animation
+  const [traceStep, setTraceStep] = useState(0);
 
   const userRole = localStorage.getItem('role') || 'Viewer';
   const isWriteAllowed = userRole === 'Admin' || userRole === 'Engineer';
@@ -127,12 +149,14 @@ const Dashboard: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, healthRes] = await Promise.all([
+      const [statsRes, healthRes, eventsRes] = await Promise.all([
         api.get('/dashboard/stats'),
         api.get('/health/detailed'),
+        api.get('/dashboard/events'),
       ]);
       setStats(statsRes.data);
       setHealth(healthRes.data);
+      setEvents(eventsRes.data || []);
       setError(null);
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err);
@@ -144,9 +168,20 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 10000); // refresh every 10s
+    const interval = setInterval(fetchDashboardData, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // Animate the federation trace on load
+  useEffect(() => {
+    if (!loading && stats) {
+      setTraceStep(0);
+      const steps = [1, 2, 3, 4, 5, 6, 7];
+      steps.forEach((step, idx) => {
+        setTimeout(() => setTraceStep(step), 300 + idx * 400);
+      });
+    }
+  }, [loading, stats?.metadata_count]);
 
   if (loading) {
     return (
@@ -234,15 +269,54 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const getEventIcon = (type: string) => {
+    switch (type) {
+      case 'CREATED':
+        return <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />;
+      case 'UPDATED':
+        return <Edit className="w-3.5 h-3.5 text-amber-400" />;
+      case 'DELETED':
+        return <Trash className="w-3.5 h-3.5 text-rose-400" />;
+      case 'RECONCILED':
+        return <CheckSquare className="w-3.5 h-3.5 text-cyan-400" />;
+      case 'CONSISTENCY_CHECKED':
+        return <CheckCircle className="w-3.5 h-3.5 text-violet-400" />;
+      default:
+        return <Clock className="w-3.5 h-3.5 text-slate-400" />;
+    }
+  };
+
+  const getEventColor = (type: string) => {
+    switch (type) {
+      case 'CREATED': return 'text-emerald-400';
+      case 'UPDATED': return 'text-amber-400';
+      case 'DELETED': return 'text-rose-400';
+      case 'RECONCILED': return 'text-cyan-400';
+      case 'CONSISTENCY_CHECKED': return 'text-violet-400';
+      default: return 'text-slate-400';
+    }
+  };
+
+  // Trace steps data
+  const traceSteps = [
+    { label: 'Core Registry', icon: Database, color: 'text-violet-400', borderColor: 'border-violet-500/30', bgColor: 'bg-violet-500/10' },
+    { label: 'Spark Catalog', logo: '/spark.png', color: 'text-orange-400', borderColor: 'border-orange-500/30', bgColor: 'bg-orange-500/10' },
+    { label: 'Postgres Catalog', logo: '/postgres.png', color: 'text-blue-400', borderColor: 'border-blue-500/30', bgColor: 'bg-blue-500/10' },
+    { label: 'OpenSearch Catalog', logo: '/opensearch.png', color: 'text-yellow-400', borderColor: 'border-yellow-500/30', bgColor: 'bg-yellow-500/10' },
+    { label: 'Redis Cache', icon: Zap, color: 'text-red-400', borderColor: 'border-red-500/30', bgColor: 'bg-red-500/10' },
+    { label: 'Audit Engine', icon: Shield, color: 'text-indigo-400', borderColor: 'border-indigo-500/30', bgColor: 'bg-indigo-500/10' },
+    { label: 'Event Engine', icon: Clock, color: 'text-emerald-400', borderColor: 'border-emerald-500/30', bgColor: 'bg-emerald-500/10' },
+  ];
+
   return (
     <div className="p-8 space-y-8 bg-slate-950 text-slate-100 min-h-screen">
       {/* Title */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">
-            System Operations Dashboard
+            Federation Control Center
           </h2>
-          <p className="text-sm text-slate-500">Live orchestration metrics and platform health indicators.</p>
+          <p className="text-sm text-slate-500">Live orchestration metrics, federation intelligence, and platform health.</p>
         </div>
         <button
           onClick={() => {
@@ -341,6 +415,168 @@ const Dashboard: React.FC = () => {
           <span className="text-xs font-semibold">{toast.message}</span>
         </div>
       )}
+
+      {/* ===================== NEW: Federation Architecture Card ===================== */}
+      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-6 flex items-center gap-2">
+          <Layers className="w-4 h-4 text-violet-400" />
+          Federation Architecture — Live Data Flow
+        </h3>
+        <div className="flex flex-col items-center gap-1">
+          {/* Layer 1: Frontend */}
+          <div className="flex items-center gap-3 px-5 py-3 bg-violet-500/10 border border-violet-500/25 rounded-xl">
+            <Cpu className="w-5 h-5 text-violet-400" />
+            <span className="text-xs font-bold text-violet-300 uppercase tracking-wider">Smart Metadata Client</span>
+            <span className="text-[9px] text-violet-500 font-semibold bg-violet-500/15 px-2 py-0.5 rounded">ABSTRACTION LAYER</span>
+          </div>
+          <ArrowDown className="w-4 h-4 text-slate-600" />
+
+          {/* Layer 2: Federation Engine */}
+          <div className="flex items-center gap-3 px-5 py-3 bg-indigo-500/10 border border-indigo-500/25 rounded-xl">
+            <Server className="w-5 h-5 text-indigo-400" />
+            <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider">Federation Engine</span>
+            {health && renderHealthIndicator(health.federation_layer)}
+          </div>
+          <ArrowDown className="w-4 h-4 text-slate-600" />
+
+          {/* Layer 3: Catalog Adapters */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-3xl">
+            {[
+              { name: 'Apache Spark', logo: '/spark.png', color: 'orange', status: health?.database },
+              { name: 'PostgreSQL', logo: '/postgres.png', color: 'blue', status: health?.database },
+              { name: 'OpenSearch', logo: '/opensearch.png', color: 'yellow', status: health?.database },
+              { name: 'Public Datasets', icon: '🌐', color: 'emerald', status: 'healthy' },
+            ].map((catalog) => (
+              <div key={catalog.name} className={`p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex flex-col items-center gap-2 transition-all hover:border-${catalog.color}-500/40`}>
+                {catalog.logo ? <img src={catalog.logo} alt={catalog.name} className="w-7 h-7 object-contain" /> : <span className="text-2xl">{catalog.icon}</span>}
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider text-center">{catalog.name}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${catalog.status === 'healthy' || catalog.status === 'enabled' ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]' : 'bg-rose-500 animate-pulse'}`}></span>
+                  <span className={`text-[9px] font-semibold uppercase ${catalog.status === 'healthy' || catalog.status === 'enabled' ? 'text-green-400' : 'text-rose-400'}`}>
+                    {catalog.status === 'healthy' || catalog.status === 'enabled' ? 'CONNECTED' : 'OFFLINE'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <ArrowDown className="w-4 h-4 text-slate-600" />
+
+          {/* Layer 4: Infrastructure */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-2xl">
+            <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-xl flex items-center gap-3 justify-center">
+              <Zap className="w-4 h-4 text-red-400" />
+              <span className="text-[10px] font-bold text-red-300 uppercase tracking-wider">Redis Cache</span>
+              {health && renderHealthIndicator(health.redis)}
+            </div>
+            <div className="p-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl flex items-center gap-3 justify-center">
+              <Shield className="w-4 h-4 text-indigo-400" />
+              <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Audit Engine</span>
+              {health && renderHealthIndicator(health.api)}
+            </div>
+            <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex items-center gap-3 justify-center">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Event Timeline</span>
+              {health && renderHealthIndicator(health.api)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===================== NEW: Federation Trace + Activity Feed ===================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Federation Trace / Metadata Lifecycle */}
+        <div className="lg:col-span-2 p-6 bg-slate-900/40 border border-slate-800 rounded-2xl">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-5 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-emerald-400" />
+            Metadata Federation Trace — Propagation Path
+          </h3>
+          <p className="text-[11px] text-slate-500 mb-5">
+            When metadata is created or updated, the federation engine propagates changes through every layer. Each checkmark below confirms live connectivity.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {traceSteps.map((step, idx) => {
+              const Icon = step.icon;
+              const isActive = traceStep > idx;
+              return (
+                <React.Fragment key={step.label}>
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-500 ${
+                    isActive
+                      ? `${step.bgColor} ${step.borderColor}`
+                      : 'bg-slate-900/30 border-slate-800/50'
+                  }`}>
+                    {step.logo ? (
+                      <img src={step.logo} alt={step.label} className={`w-4 h-4 object-contain transition-all duration-500 ${!isActive && 'opacity-30 grayscale'}`} />
+                    ) : (
+                      Icon && <Icon className={`w-4 h-4 transition-colors duration-500 ${isActive ? step.color : 'text-slate-600'}`} />
+                    )}
+                    <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors duration-500 ${isActive ? 'text-slate-200' : 'text-slate-600'}`}>
+                      {step.label}
+                    </span>
+                    {isActive && (
+                      <CheckCircle className={`w-3.5 h-3.5 ${step.color} animate-[fadeIn_0.3s_ease-in]`} />
+                    )}
+                  </div>
+                  {idx < traceSteps.length - 1 && (
+                    <ArrowRight className={`w-3.5 h-3.5 shrink-0 transition-colors duration-500 ${traceStep > idx ? 'text-slate-400' : 'text-slate-800'}`} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+          <div className="mt-5 pt-4 border-t border-slate-800/50 flex items-center gap-3">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider">
+              {stats.metadata_count} objects propagated across {stats.connected_catalogs} catalogs
+            </span>
+            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-black border border-emerald-500/20">
+              ALL LAYERS ACTIVE
+            </span>
+          </div>
+        </div>
+
+        {/* Recent Federation Activity Feed */}
+        <div className="p-6 bg-slate-900/40 border border-slate-800 rounded-2xl flex flex-col">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-indigo-400" />
+            Recent Federation Activity
+          </h3>
+          <div className="flex-1 space-y-2.5 overflow-y-auto max-h-72">
+            {events.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-slate-600">
+                <Activity className="w-8 h-8 mb-2" />
+                <span className="text-xs">No federation activity recorded yet</span>
+                <span className="text-[10px] text-slate-700 mt-1">Create metadata to generate events</span>
+              </div>
+            ) : (
+              events.slice(0, 8).map((event) => (
+                <div key={event.event_id} className="flex items-center gap-3 px-3 py-2.5 bg-slate-900/50 border border-slate-850 rounded-xl hover:border-slate-700/50 transition-colors">
+                  <div className="shrink-0">{getEventIcon(event.event_type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${getEventColor(event.event_type)}`}>
+                        {event.event_type.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500">
+                      Metadata <span className="text-slate-400 font-mono">#{event.metadata_id}</span>
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-slate-600 shrink-0">
+                    {new Date(event.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+          {events.length > 0 && (
+            <Link
+              to="/events"
+              className="mt-3 pt-3 border-t border-slate-800/50 text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold uppercase tracking-wider text-center transition-colors"
+            >
+              View Full Event Timeline →
+            </Link>
+          )}
+        </div>
+      </div>
 
       {/* Dashboard Quick Actions */}
       <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">

@@ -65,6 +65,23 @@ const Audits: React.FC = () => {
     }
   };
 
+  const getActionIcon = (action: string) => {
+    if (action === 'LOGIN') return '🔑';
+    if (action.includes('CREATE')) return '➕';
+    if (action.includes('UPDATE')) return '✏️';
+    if (action.includes('DELETE')) return '🗑️';
+    if (action.includes('RECONCILE')) return '🔄';
+    return '⚡';
+  };
+
+  const getSeverity = (action: string) => {
+    if (action === 'DELETE' || action === 'CLIENT_DELETE') return { label: 'CRITICAL', style: 'text-rose-400 bg-rose-500/10 border-rose-500/20' };
+    if (action === 'UPDATE' || action === 'CLIENT_UPDATE' || action === 'RECONCILE') return { label: 'WARNING', style: 'text-amber-400 bg-amber-500/10 border-amber-500/20' };
+    return { label: 'INFO', style: 'text-slate-400 bg-slate-800 border-slate-700/50' };
+  };
+
+  const quickFilters = ['ALL', 'CREATE', 'UPDATE', 'DELETE', 'RECONCILE', 'LOGIN'];
+
   return (
     <div className="p-8 space-y-8 bg-slate-950 text-slate-100 min-h-screen">
       {/* Title */}
@@ -97,15 +114,34 @@ const Audits: React.FC = () => {
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between max-w-lg bg-slate-900 border border-slate-850 rounded-xl px-3.5 py-1.5">
-        <Search className="w-4 h-4 text-slate-500 shrink-0" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by action, user, role, or catalog..."
-          className="w-full bg-transparent border-none text-xs text-slate-350 focus:outline-none pl-3"
-        />
+      <div className="flex flex-col gap-4 max-w-2xl">
+        <div className="flex items-center justify-between bg-slate-900 border border-slate-850 rounded-xl px-3.5 py-1.5">
+          <Search className="w-4 h-4 text-slate-500 shrink-0" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by action, user, role, or catalog..."
+            className="w-full bg-transparent border-none text-xs text-slate-350 focus:outline-none pl-3"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Quick Filters:</span>
+          {quickFilters.map(filter => (
+            <button
+              key={filter}
+              onClick={() => setSearchQuery(filter === 'ALL' ? '' : filter)}
+              className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg border transition-all ${
+                (filter === 'ALL' && !searchQuery) || (filter !== 'ALL' && searchQuery.toUpperCase().includes(filter))
+                  ? 'bg-violet-600/20 border-violet-500/40 text-violet-300'
+                  : 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800 hover:text-slate-300'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Audit Log Table */}
@@ -124,6 +160,7 @@ const Audits: React.FC = () => {
                   <th className="px-6 py-4">User</th>
                   <th className="px-6 py-4">Role</th>
                   <th className="px-6 py-4">Action</th>
+                  <th className="px-6 py-4">Severity</th>
                   <th className="px-6 py-4">Catalog</th>
                   <th className="px-6 py-4">Metadata ID</th>
                 </tr>
@@ -146,8 +183,14 @@ const Audits: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-400">{audit.role}</td>
                       <td className="px-6 py-4">
-                        <span className={`text-[10px] font-black uppercase border px-2 py-0.5 rounded ${getActionStyle(audit.action)}`}>
+                        <span className={`text-[10px] font-black uppercase border px-2 py-0.5 rounded flex items-center gap-1.5 w-max ${getActionStyle(audit.action)}`}>
+                          <span>{getActionIcon(audit.action)}</span>
                           {audit.action}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`text-[9px] font-black uppercase border px-2 py-0.5 rounded ${getSeverity(audit.action).style}`}>
+                          {getSeverity(audit.action).label}
                         </span>
                       </td>
                       <td className="px-6 py-4">

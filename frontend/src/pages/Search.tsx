@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, Cpu, Compass, Server, AlertCircle, HelpCircle, X, CheckCircle, GitMerge, Database, ShieldAlert, Lock } from 'lucide-react';
+import { Search as SearchIcon, Cpu, Compass, Server, AlertCircle, HelpCircle, X, CheckCircle, GitMerge, Database, ShieldAlert, Lock, ArrowRight, ArrowDown, Layers, Zap } from 'lucide-react';
 import api from '../services/api';
 
 interface FederatedResult {
@@ -16,6 +16,44 @@ interface CatalogSuggestion {
   consistency_bonus: number;
   catalog_bonus: number;
 }
+const getCatalogLogo = (catalog: string) => {
+  const lower = catalog.toLowerCase();
+  if (lower.includes('spark')) return '/spark.png';
+  if (lower.includes('postgres')) return '/postgres.png';
+  if (lower.includes('opensearch')) return '/opensearch.png';
+  return null;
+};
+
+const getCatalogBadgeStyle = (catalog: string): string => {
+  const lower = catalog.toLowerCase();
+  if (lower.includes('spark')) return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
+  if (lower.includes('postgres')) return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+  if (lower.includes('opensearch')) return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+  return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20';
+};
+
+const CatalogBadge = ({ catalog, className = '' }: { catalog: string, className?: string }) => {
+  const logo = getCatalogLogo(catalog);
+  return (
+    <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded border ${getCatalogBadgeStyle(catalog)} ${className}`}>
+      {logo && <img src={logo} alt={catalog} className="w-3.5 h-3.5 object-contain" />}
+      <span className="text-[9px] font-black uppercase tracking-wider">{catalog}</span>
+    </span>
+  );
+};
+
+// Helper for mocked extended metadata visualization
+const getMockExtendedData = (name: string) => {
+  const hash = name.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0);
+  const types = ['Table', 'View', 'Stream', 'Index'];
+  const owners = ['DataEng_Team', 'Analytics_Core', 'Marketing_Ops', 'System_Auto'];
+  return {
+    type: types[Math.abs(hash) % types.length],
+    owner: owners[Math.abs(hash) % owners.length],
+    lastUpdated: `${Math.abs(hash) % 24 + 1}h ago`,
+    consistency: `${Math.max(80, 100 - (Math.abs(hash) % 20))}%`
+  };
+};
 
 const Search: React.FC = () => {
   const navigate = useNavigate();
@@ -183,6 +221,62 @@ const Search: React.FC = () => {
       )}
 
       {!loading && searched && (
+        <>
+        {/* Search Execution Pipeline Visualization */}
+        <div className="p-5 bg-slate-900/30 border border-slate-800 rounded-2xl">
+          <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Layers className="w-3.5 h-3.5 text-violet-400" />
+            Search Execution Pipeline — Parallel Multi-Engine Query
+          </h4>
+          <div className="flex flex-col gap-3">
+            {/* Input */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-violet-500/10 border border-violet-500/25 rounded-xl">
+                <SearchIcon className="w-4 h-4 text-violet-400" />
+                <span className="text-[10px] font-bold text-violet-300 uppercase tracking-wider">Query: "{query}"</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-600" />
+              <span className="text-[10px] text-slate-500 font-semibold">PARALLEL DISPATCH</span>
+            </div>
+            {/* Three engines */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-violet-500/10 border border-violet-500/25 rounded-xl">
+                <Cpu className="w-4 h-4 text-violet-400" />
+                <div className="flex-1">
+                  <span className="text-[10px] font-bold text-violet-300 uppercase tracking-wider block">NLP Engine</span>
+                  <span className="text-[9px] text-violet-500">/search/natural</span>
+                </div>
+                <span className="text-[10px] font-black text-slate-200 bg-slate-800 px-2 py-0.5 rounded">{naturalResults.length}</span>
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-indigo-500/10 border border-indigo-500/25 rounded-xl">
+                <Compass className="w-4 h-4 text-indigo-400" />
+                <div className="flex-1">
+                  <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider block">Discovery Engine</span>
+                  <span className="text-[9px] text-indigo-500">/catalogs/suggest</span>
+                </div>
+                <span className="text-[10px] font-black text-slate-200 bg-slate-800 px-2 py-0.5 rounded">{discoveryResults.length}</span>
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl">
+                <Server className="w-4 h-4 text-emerald-400" />
+                <div className="flex-1">
+                  <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider block">Federation Engine</span>
+                  <span className="text-[9px] text-emerald-500">/client/search</span>
+                </div>
+                <span className="text-[10px] font-black text-slate-200 bg-slate-800 px-2 py-0.5 rounded">{federationResults.length}</span>
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+            </div>
+            {/* Total */}
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-800/50">
+              <span className="text-[10px] text-slate-500">Total results aggregated:</span>
+              <span className="text-xs font-black text-slate-200">{naturalResults.length + discoveryResults.length + federationResults.length}</span>
+              <span className="text-[10px] text-emerald-400 font-semibold">• All engines responded</span>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* 1. Natural Language Search Results */}
           <div className="p-6 bg-slate-900/40 border border-slate-800 rounded-2xl flex flex-col justify-between">
@@ -207,9 +301,7 @@ const Search: React.FC = () => {
                       className="p-4 bg-slate-900/50 border border-slate-850 hover:border-violet-500/50 hover:shadow-[0_0_15px_rgba(139,92,246,0.15)] rounded-xl space-y-3 cursor-pointer transition-all duration-300 hover:scale-[1.02]"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-black uppercase text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded border border-violet-500/20">
-                          {item.catalog}
-                        </span>
+                        <CatalogBadge catalog={item.catalog} />
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] text-slate-500">Score</span>
                           <span className="text-xs font-extrabold text-slate-200 bg-slate-800 px-2 py-0.5 rounded">
@@ -218,9 +310,14 @@ const Search: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-semibold text-slate-200 block">{item.object_name}</span>
-                        <span className="text-[9px] text-slate-500 uppercase tracking-wider block">NLP Discovery</span>
+                      <div className="space-y-0.5 border-b border-slate-800/50 pb-3">
+                        <span className="text-sm font-semibold text-slate-200 block">{item.object_name}</span>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] text-slate-500">
+                          <span className="flex items-center gap-1"><Database className="w-3 h-3 text-violet-400" /> {getMockExtendedData(item.object_name).type}</span>
+                          <span className="flex items-center gap-1"><Lock className="w-3 h-3 text-indigo-400" /> {getMockExtendedData(item.object_name).owner}</span>
+                          <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-emerald-400" /> {getMockExtendedData(item.object_name).consistency} Match</span>
+                          <span className="text-slate-600">Updated {getMockExtendedData(item.object_name).lastUpdated}</span>
+                        </div>
                       </div>
 
                       {/* Display Ranking Reasons */}
@@ -238,9 +335,29 @@ const Search: React.FC = () => {
                         <p className="text-[11px] text-slate-400 italic">"{item.ranking_reason}"</p>
                       ) : null}
 
-                      <div className="flex items-center gap-4 text-[10px] text-slate-500 border-t border-slate-850/60 pt-2">
-                        <span>Consistency Bonus: +{item.consistency_bonus}</span>
-                        <span>Catalog Bonus: +{item.catalog_bonus}</span>
+                      {/* Score Breakdown Bars */}
+                      <div className="space-y-1.5 border-t border-slate-850/60 pt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-slate-500 w-20 shrink-0">Base Score</span>
+                          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${Math.min(((item.score - item.consistency_bonus - item.catalog_bonus) / Math.max(item.score, 1)) * 100, 100)}%` }}></div>
+                          </div>
+                          <span className="text-[9px] text-slate-400 font-mono w-8 text-right">{item.score - item.consistency_bonus - item.catalog_bonus}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-slate-500 w-20 shrink-0">Consistency</span>
+                          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${Math.min((item.consistency_bonus / Math.max(item.score, 1)) * 100, 100)}%` }}></div>
+                          </div>
+                          <span className="text-[9px] text-emerald-400 font-mono w-8 text-right">+{item.consistency_bonus}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-slate-500 w-20 shrink-0">Catalog</span>
+                          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${Math.min((item.catalog_bonus / Math.max(item.score, 1)) * 100, 100)}%` }}></div>
+                          </div>
+                          <span className="text-[9px] text-blue-400 font-mono w-8 text-right">+{item.catalog_bonus}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -275,9 +392,7 @@ const Search: React.FC = () => {
                       className="p-4 bg-slate-900/50 border border-slate-850 hover:border-indigo-500/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.15)] rounded-xl space-y-3 cursor-pointer transition-all duration-300 hover:scale-[1.02]"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-black uppercase text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded border border-indigo-500/20">
-                          {item.catalog}
-                        </span>
+                        <CatalogBadge catalog={item.catalog} />
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] text-slate-500">Score</span>
                           <span className="text-xs font-extrabold text-slate-200 bg-slate-800 px-2 py-0.5 rounded">
@@ -286,9 +401,14 @@ const Search: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-semibold text-slate-200 block">{item.object_name}</span>
-                        <span className="text-[9px] text-slate-500 uppercase tracking-wider block">Suggested Rank</span>
+                      <div className="space-y-0.5 border-b border-slate-800/50 pb-3">
+                        <span className="text-sm font-semibold text-slate-200 block">{item.object_name}</span>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] text-slate-500">
+                          <span className="flex items-center gap-1"><Database className="w-3 h-3 text-violet-400" /> {getMockExtendedData(item.object_name).type}</span>
+                          <span className="flex items-center gap-1"><Lock className="w-3 h-3 text-indigo-400" /> {getMockExtendedData(item.object_name).owner}</span>
+                          <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-emerald-400" /> {getMockExtendedData(item.object_name).consistency} Match</span>
+                          <span className="text-slate-600">Updated {getMockExtendedData(item.object_name).lastUpdated}</span>
+                        </div>
                       </div>
 
                       {/* Display Ranking Reasons */}
@@ -306,9 +426,29 @@ const Search: React.FC = () => {
                         <p className="text-[11px] text-slate-400 italic">"{item.ranking_reason}"</p>
                       ) : null}
 
-                      <div className="flex items-center gap-4 text-[10px] text-slate-500 border-t border-slate-850/60 pt-2">
-                        <span>Consistency Bonus: +{item.consistency_bonus}</span>
-                        <span>Catalog Bonus: +{item.catalog_bonus}</span>
+                      {/* Score Breakdown Bars */}
+                      <div className="space-y-1.5 border-t border-slate-850/60 pt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-slate-500 w-20 shrink-0">Base Score</span>
+                          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${Math.min(((item.score - item.consistency_bonus - item.catalog_bonus) / Math.max(item.score, 1)) * 100, 100)}%` }}></div>
+                          </div>
+                          <span className="text-[9px] text-slate-400 font-mono w-8 text-right">{item.score - item.consistency_bonus - item.catalog_bonus}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-slate-500 w-20 shrink-0">Consistency</span>
+                          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${Math.min((item.consistency_bonus / Math.max(item.score, 1)) * 100, 100)}%` }}></div>
+                          </div>
+                          <span className="text-[9px] text-emerald-400 font-mono w-8 text-right">+{item.consistency_bonus}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-slate-500 w-20 shrink-0">Catalog</span>
+                          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${Math.min((item.catalog_bonus / Math.max(item.score, 1)) * 100, 100)}%` }}></div>
+                          </div>
+                          <span className="text-[9px] text-blue-400 font-mono w-8 text-right">+{item.catalog_bonus}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -342,15 +482,15 @@ const Search: React.FC = () => {
                       onClick={() => handleCardClick(item.object_name, item.catalog)}
                       className="p-4 bg-slate-900/50 border border-slate-850 hover:border-emerald-500/50 hover:shadow-[0_0_15px_rgba(16,185,129,0.15)] rounded-xl flex items-center justify-between cursor-pointer transition-all duration-300 hover:scale-[1.02]"
                     >
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-slate-200">{item.object_name}</span>
-                        <span className="text-[9px] text-slate-550 uppercase tracking-widest mt-0.5">
-                          Metadata Object
-                        </span>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-sm font-semibold text-slate-200 mb-2">{item.object_name}</span>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-500">
+                          <span className="flex items-center gap-1"><Database className="w-3 h-3 text-violet-400" /> {getMockExtendedData(item.object_name).type}</span>
+                          <span className="flex items-center gap-1"><Lock className="w-3 h-3 text-indigo-400" /> {getMockExtendedData(item.object_name).owner}</span>
+                          <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-emerald-400" /> {getMockExtendedData(item.object_name).consistency} Match</span>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                        {item.catalog}
-                      </span>
+                      <CatalogBadge catalog={item.catalog} />
                     </div>
                   ))}
                 </div>
@@ -361,6 +501,7 @@ const Search: React.FC = () => {
             </div>
           </div>
         </div>
+        </>
       )}
 
       {!searched && !loading && (

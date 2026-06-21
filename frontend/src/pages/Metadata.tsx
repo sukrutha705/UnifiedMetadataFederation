@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Plus,
   Edit2,
@@ -8,6 +8,11 @@ import {
   Search,
   Database,
   Lock,
+  X,
+  CheckCircle,
+  GitMerge,
+  ShieldAlert,
+  Clock,
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -28,6 +33,7 @@ interface MetadataProps {
 
 const Metadata: React.FC<MetadataProps> = ({ userRole }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const highlightId = location.state?.highlightId || null;
   const [metadataList, setMetadataList] = useState<MetadataResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +53,10 @@ const Metadata: React.FC<MetadataProps> = ({ userRole }) => {
   const [objectType, setObjectType] = useState('table');
   const [description, setDescription] = useState('');
   const [ownerName, setOwnerName] = useState('');
+
+  // Detail drawer
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedMeta, setSelectedMeta] = useState<MetadataResponse | null>(null);
 
   const fetchMetadata = async () => {
     try {
@@ -139,6 +149,37 @@ const Metadata: React.FC<MetadataProps> = ({ userRole }) => {
       (meta.description && meta.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const getCatalogLogo = (catalog: string) => {
+    const lower = catalog.toLowerCase();
+    if (lower.includes('spark')) return '/spark.png';
+    if (lower.includes('postgres')) return '/postgres.png';
+    if (lower.includes('opensearch')) return '/opensearch.png';
+    return null;
+  };
+
+  const getCatalogBadgeStyle = (catalog: string): string => {
+    const lower = catalog.toLowerCase();
+    if (lower.includes('spark')) return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
+    if (lower.includes('postgres')) return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+    if (lower.includes('opensearch')) return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+    return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20';
+  };
+
+  const CatalogBadge = ({ catalog, className = '' }: { catalog: string, className?: string }) => {
+    const logo = getCatalogLogo(catalog);
+    return (
+      <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded border w-max ${getCatalogBadgeStyle(catalog)} ${className}`}>
+        {logo && <img src={logo} alt={catalog} className="w-3.5 h-3.5 object-contain" />}
+        <span className="text-[9px] font-black uppercase tracking-wider">{catalog}</span>
+      </span>
+    );
+  };
+
+  const handleRowClick = (meta: MetadataResponse) => {
+    setSelectedMeta(meta);
+    setDrawerOpen(true);
+  };
+
   return (
     <div className="p-8 space-y-8 bg-slate-950 text-slate-100 min-h-screen relative">
       {/* Title */}
@@ -197,47 +238,61 @@ const Metadata: React.FC<MetadataProps> = ({ userRole }) => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-900/80 border-b border-slate-850 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                  <th className="px-6 py-4">ID</th>
-                  <th className="px-6 py-4">Catalog</th>
-                  <th className="px-6 py-4">Object Name</th>
-                  <th className="px-6 py-4">Object Type</th>
-                  <th className="px-6 py-4">Owner</th>
-                  <th className="px-6 py-4">Description</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-5 py-4">ID</th>
+                  <th className="px-5 py-4">Catalog</th>
+                  <th className="px-5 py-4">Object Name</th>
+                  <th className="px-5 py-4">Type</th>
+                  <th className="px-5 py-4">Owner</th>
+                  <th className="px-5 py-4">Sync</th>
+                  <th className="px-5 py-4">Federation</th>
+                  <th className="px-5 py-4">Updated</th>
+                  <th className="px-5 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-850">
                 {filteredMetadata.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-550 text-xs">
+                    <td colSpan={9} className="px-5 py-12 text-center text-slate-550 text-xs">
                       No metadata records found matching query
                     </td>
                   </tr>
                 ) : (
                   filteredMetadata.map((meta) => (
-                    <tr key={meta.id} className={`hover:bg-slate-900/30 transition-colors ${meta.id === highlightId ? 'bg-violet-600/15 border-l-2 border-l-violet-500 shadow-[inset_4px_0_0_rgba(139,92,246,0.3)]' : ''}`}>
-                      <td className="px-6 py-4 text-xs font-mono text-slate-500">#{meta.id}</td>
-                      <td className="px-6 py-4">
-                        <span className="text-[10px] font-black uppercase text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                          {meta.catalog_name}
-                        </span>
+                    <tr
+                      key={meta.id}
+                      onClick={() => handleRowClick(meta)}
+                      className={`hover:bg-slate-900/30 transition-colors cursor-pointer ${meta.id === highlightId ? 'bg-violet-600/15 border-l-2 border-l-violet-500 shadow-[inset_4px_0_0_rgba(139,92,246,0.3)]' : ''}`}
+                    >
+                      <td className="px-5 py-4 text-xs font-mono text-slate-500">#{meta.id}</td>
+                      <td className="px-5 py-4">
+                        <CatalogBadge catalog={meta.catalog_name} />
                       </td>
-                      <td className="px-6 py-4 text-xs font-semibold text-slate-200">
+                      <td className="px-5 py-4 text-xs font-semibold text-slate-200">
                         {meta.object_name}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-4">
                         <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded uppercase">
                           {meta.object_type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-400">
+                      <td className="px-5 py-4 text-xs text-slate-400">
                         {meta.owner_name || <span className="text-slate-650 italic">None</span>}
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-450 max-w-xs truncate">
-                        {meta.description || <span className="text-slate-650 italic">No description</span>}
+                      <td className="px-5 py-4">
+                        <span className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          SYNCED
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-5 py-4">
+                        <span className="text-[9px] font-black uppercase text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20">
+                          FEDERATED
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-[10px] text-slate-500 font-mono">
+                        {meta.updated_at ? new Date(meta.updated_at).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleOpenEdit(meta)}
                             disabled={!isWriteAllowed}
@@ -376,6 +431,103 @@ const Metadata: React.FC<MetadataProps> = ({ userRole }) => {
           </div>
         </div>
       )}
+
+      {/* Metadata Detail Drawer */}
+      <div className={`fixed inset-0 z-50 pointer-events-none ${drawerOpen ? 'pointer-events-auto' : ''}`}>
+        <div
+          onClick={() => setDrawerOpen(false)}
+          className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+            drawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        />
+        <div
+          className={`fixed top-0 right-0 h-full w-[420px] bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+            drawerOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+            <div className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-violet-400" />
+              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Metadata Details</h3>
+            </div>
+            <button
+              onClick={() => setDrawerOpen(false)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 bg-slate-800 border border-slate-700/50 hover:bg-slate-750 transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {selectedMeta && (
+            <>
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Object</span>
+                  <h2 className="text-xl font-bold text-slate-100 tracking-tight">{selectedMeta.object_name}</h2>
+                  <div className="pt-2 flex flex-wrap gap-2 items-center">
+                    <CatalogBadge catalog={selectedMeta.catalog_name} className="py-1" />
+                    <span className="text-xs font-bold text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded uppercase">
+                      {selectedMeta.object_type}
+                    </span>
+                    <span className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      SYNCED
+                    </span>
+                    <span className="text-[9px] font-black uppercase text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20">
+                      FEDERATED
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850 rounded-xl p-4 space-y-4">
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Metadata ID</span>
+                    <span className="text-xs font-mono text-slate-300">#{selectedMeta.id}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Owner</span>
+                    <span className="text-xs text-slate-300">{selectedMeta.owner_name || <span className="text-slate-650 italic">None</span>}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Description</span>
+                    <p className="text-xs text-slate-350 leading-relaxed">{selectedMeta.description || <span className="text-slate-650 italic">No description</span>}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/50">
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Created</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{selectedMeta.created_at ? new Date(selectedMeta.created_at).toLocaleString() : '—'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Updated</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{selectedMeta.updated_at ? new Date(selectedMeta.updated_at).toLocaleString() : '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-800 bg-slate-900/30 space-y-3">
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Quick Actions</span>
+                <div className="grid grid-cols-1 gap-2.5">
+                  <button
+                    onClick={() => { setDrawerOpen(false); navigate('/consistency', { state: { objectName: selectedMeta.object_name } }); }}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all border border-slate-700/40 cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /> Check Consistency</span>
+                    <span>→</span>
+                  </button>
+                  <button
+                    onClick={() => { setDrawerOpen(false); navigate('/reconciliation', { state: { objectName: selectedMeta.object_name } }); }}
+                    disabled={userRole === 'Viewer'}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all border border-slate-700/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="flex items-center gap-2"><GitMerge className="w-4 h-4 text-indigo-400" /> Reconcile Schema</span>
+                    <span>{userRole === 'Viewer' ? <Lock className="w-3.5 h-3.5 text-slate-500" /> : '→'}</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -38,13 +38,13 @@ const Events: React.FC = () => {
       case 'CREATED':
         return <PlusCircle className="w-5 h-5 text-emerald-400" />;
       case 'UPDATED':
-        return <Edit className="w-5 h-5 text-amber-400" />;
+        return <Edit className="w-5 h-5 text-blue-400" />;
       case 'DELETED':
         return <Trash className="w-5 h-5 text-rose-400" />;
       case 'RECONCILED':
-        return <CheckSquare className="w-5 h-5 text-cyan-400" />;
+        return <CheckSquare className="w-5 h-5 text-violet-400" />;
       case 'CONSISTENCY_CHECKED':
-        return <HelpCircle className="w-5 h-5 text-violet-400" />;
+        return <HelpCircle className="w-5 h-5 text-indigo-400" />;
       default:
         return <Clock className="w-5 h-5 text-slate-400" />;
     }
@@ -55,15 +55,32 @@ const Events: React.FC = () => {
       case 'CREATED':
         return 'bg-emerald-500/10 border-emerald-500/20';
       case 'UPDATED':
-        return 'bg-amber-500/10 border-amber-500/20';
+        return 'bg-blue-500/10 border-blue-500/20';
       case 'DELETED':
         return 'bg-rose-500/10 border-rose-500/20';
       case 'RECONCILED':
-        return 'bg-cyan-500/10 border-cyan-500/20';
-      case 'CONSISTENCY_CHECKED':
         return 'bg-violet-500/10 border-violet-500/20';
+      case 'CONSISTENCY_CHECKED':
+        return 'bg-indigo-500/10 border-indigo-500/20';
       default:
         return 'bg-slate-800 border-slate-700/50';
+    }
+  };
+
+  const getEventTextColor = (type: string) => {
+    switch (type) {
+      case 'CREATED':
+        return 'text-emerald-400';
+      case 'UPDATED':
+        return 'text-blue-400';
+      case 'DELETED':
+        return 'text-rose-400';
+      case 'RECONCILED':
+        return 'text-violet-400';
+      case 'CONSISTENCY_CHECKED':
+        return 'text-indigo-400';
+      default:
+        return 'text-slate-300';
     }
   };
 
@@ -135,7 +152,10 @@ const Events: React.FC = () => {
                   </div>
 
                   <p className="text-xs text-slate-400 leading-snug">
-                    Action executed on metadata record{' '}
+                    <span className={`font-semibold ${getEventTextColor(event.event_type)}`}>
+                      {event.event_type.replace('_', ' ')}
+                    </span>
+                    {' '}executed on metadata record{' '}
                     <strong className="text-violet-400 font-semibold font-mono">
                       #{event.metadata_id}
                     </strong>
