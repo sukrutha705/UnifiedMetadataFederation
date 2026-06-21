@@ -433,7 +433,7 @@ const Metadata: React.FC<MetadataProps> = ({ userRole }) => {
       )}
 
       {/* Metadata Detail Drawer */}
-      <div className={`fixed inset-0 z-50 pointer-events-none ${drawerOpen ? 'pointer-events-auto' : ''}`}>
+      <div className={`fixed inset-0 z-50 ${drawerOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
         <div
           onClick={() => setDrawerOpen(false)}
           className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${

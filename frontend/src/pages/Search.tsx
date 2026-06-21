@@ -517,7 +517,7 @@ const Search: React.FC = () => {
       )}
 
       {/* Sliding Drawer Container */}
-      <div className={`fixed inset-0 z-50 pointer-events-none ${drawerOpen ? 'pointer-events-auto' : ''}`}>
+      <div className={`fixed inset-0 z-50 ${drawerOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
         {/* Backdrop */}
         <div
           onClick={() => setDrawerOpen(false)}
@@ -634,6 +634,7 @@ const Search: React.FC = () => {
               <button
                 onClick={() => {
                   if (activeMetadata) {
+                    setDrawerOpen(false);
                     navigate('/consistency', { state: { objectName: activeMetadata.object_name } });
                   }
                 }}
@@ -650,6 +651,7 @@ const Search: React.FC = () => {
               <button
                 onClick={() => {
                   if (activeMetadata) {
+                    setDrawerOpen(false);
                     navigate('/reconciliation', { state: { objectName: activeMetadata.object_name } });
                   }
                 }}
@@ -666,6 +668,7 @@ const Search: React.FC = () => {
               <button
                 onClick={() => {
                   if (activeMetadata && activeMetadata.id !== null) {
+                    setDrawerOpen(false);
                     navigate('/metadata', { state: { highlightId: activeMetadata.id } });
                   }
                 }}
